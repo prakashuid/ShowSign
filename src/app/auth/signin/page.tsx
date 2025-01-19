@@ -79,36 +79,70 @@ const SignIn: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // useEffect(() => {
+  //   const fetchImages = async () => {
+  //     try {
+  //       const response = await fetch("/api/file");
+  //       if (!response.ok) {
+  //         throw new Error("Failed to fetch blob URLs");
+  //       }
+  //       const data = await response.json();
+  //       handleConfetti();
+  //       const combinedItems = combineItemsByCoreIdentifier(data);
+  //       const localCombinedItems: LocalCombinedItem[] = combinedItems.map(
+  //         (item) => ({
+  //           capture: item.captured,
+  //           signature: item.signature,
+  //         }),
+  //       );
+
+  //       setImagesData(localCombinedItems);
+  //       setIsSignatureReady(true);
+  //       setLoading(false);
+  //     } catch (err) {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchImages();
+  //   const intervalId = setInterval(fetchImages, 15000);
+
+  //   return () => clearInterval(intervalId);
+  // }, []);
   useEffect(() => {
+    let lastModified = null; //Store last modified timestamp
+  
     const fetchImages = async () => {
       try {
-        const response = await fetch("/api/file");
+        const headers = {};
+        if (lastModified) {
+          headers['If-Modified-Since'] = lastModified;
+        }
+        const response = await fetch("/api/file", { headers });
         if (!response.ok) {
-          throw new Error("Failed to fetch blob URLs");
+          if (response.status === 304) {
+            //Not modified, do nothing
+            return;
+          } else {
+            throw new Error(`Failed to fetch blob URLs: ${response.status}`);
+          }
         }
         const data = await response.json();
+        lastModified = response.headers.get('Last-Modified'); // Update lastModified
         handleConfetti();
-        const combinedItems = combineItemsByCoreIdentifier(data);
-        const localCombinedItems: LocalCombinedItem[] = combinedItems.map(
-          (item) => ({
-            capture: item.captured,
-            signature: item.signature,
-          }),
-        );
-
-        setImagesData(localCombinedItems);
-        setIsSignatureReady(true);
-        setLoading(false);
+        // ... rest of your code ...
       } catch (err) {
         setLoading(false);
+        console.error("Error fetching images:", err);
       }
     };
-
+  
     fetchImages();
     const intervalId = setInterval(fetchImages, 15000);
-
+  
     return () => clearInterval(intervalId);
   }, []);
+  
   const handleConfetti = () => {
     confetti({
       ...confettiDefaults,
