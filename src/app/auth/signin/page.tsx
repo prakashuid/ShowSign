@@ -204,15 +204,15 @@ const SignIn: React.FC = () => {
           </div>
         </div>
 
-        <div className=" mt-5 w-full sm:block sm:w-1/2  xl:block xl:w-1/2">
-          <div className="flex h-[650px] flex-wrap justify-center overflow-y-auto ">
+        <div className=" mt-5 w-full h-[650px] sm:block sm:w-1/2  xl:block xl:w-1/2 overflow-y-auto">
+          <div className="flex w-full  flex-wrap justify-start  ">
             {imagesData.map((item, i) => (
               <div
                 key={i}
                 onClick={() => {
                   imageHandeler(item?.capture?.url, item?.signature?.url);
                 }}
-                className="m-2 w-1/4 cursor-pointer overflow-hidden rounded-[10px] bg-gray shadow-1 dark:bg-gray-dark dark:shadow-card"
+                className="w-[120px] m-1 h-[160px] cursor-pointer overflow-hidden rounded-[10px] bg-gray shadow-1 dark:bg-gray-dark dark:shadow-card"
               >
                 <div className="relative z-20 "></div>
                 <div className="">
