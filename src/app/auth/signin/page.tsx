@@ -119,8 +119,8 @@ const SignIn: React.FC = () => {
           headers['If-Modified-Since'] = lastModified;
         }
         const timestamp = Date.now();
-        const response = await fetch(`/api/file?t=${timestamp}`, { headers: headers as HeadersInit, next: {
-          revalidate: 6, 
+        const response = await fetch(`/api/file?t=${timestamp}`, { headers: headers as HeadersInit, method: "GET",  next: {
+          tags: [`${timestamp}`]
         },});
         if (!response.ok) {
           if (response.status === 304) {
