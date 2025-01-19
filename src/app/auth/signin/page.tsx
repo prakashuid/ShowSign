@@ -110,11 +110,11 @@ const SignIn: React.FC = () => {
   //   return () => clearInterval(intervalId);
   // }, []);
   useEffect(() => {
-    let lastModified = null; //Store last modified timestamp
+    let lastModified: string | null = null; //Store last modified timestamp
   
     const fetchImages = async () => {
       try {
-        const headers = {};
+        const headers: Record<string, string> = {};
         if (lastModified) {
           headers['If-Modified-Since'] = lastModified;
         }
@@ -130,8 +130,17 @@ const SignIn: React.FC = () => {
         const data = await response.json();
         lastModified = response.headers.get('Last-Modified'); // Update lastModified
         handleConfetti();
-        // ... rest of your code ...
-      } catch (err) {
+        const combinedItems = combineItemsByCoreIdentifier(data);
+              const localCombinedItems: LocalCombinedItem[] = combinedItems.map(
+                (item) => ({
+                  capture: item.captured,
+                  signature: item.signature,
+                }),
+              );
+      
+              setImagesData(localCombinedItems);
+              setIsSignatureReady(true);
+              setLoading(false);      } catch (err) {
         setLoading(false);
         console.error("Error fetching images:", err);
       }
