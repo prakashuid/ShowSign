@@ -13,6 +13,7 @@ import { Camera } from "react-camera-pro";
 import bandgPhoto from "../../../../public/images/CustImages/BandG.png";
 import { useRouter } from "next/navigation";
 import { combineItemsByCoreIdentifier, CombinedItem } from "@/utils/helper";
+import { noStore } from 'next/cache';
 interface CameraRef {
   takePhoto: () => string;
   // Add any other necessary methods or properties
@@ -115,12 +116,14 @@ const SignIn: React.FC = () => {
   let lastModified: string | null = null; //Store last modified timestamp
   
     const fetchImages = async () => {
+
       try {
         const headers: Record<string, string> = {};
         if (lastModified) {
           headers['If-Modified-Since'] = lastModified;
         }
         const timestamp = Date.now();
+        noStore();
         const response = await fetch(`/api/file?t=${timestamp}`, { headers: headers as HeadersInit, method: "GET",  next: {
           tags: [`${timestamp}`]
         },});
