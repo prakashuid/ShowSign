@@ -44,6 +44,7 @@ const SignIn: React.FC = () => {
   const [brideName, setBrideName] = useState("");
   const [groomName, setGroomName] = useState("");
   const [marriageDate, setMarriageDate] = useState("");
+  const [imagesDataOnclick, setImagesDataOnclick] = useState<LocalCombinedItem[]>([]);
   const [photo, setPhoto] = useState<File | null>(null);
 
   React.useEffect(() => {
@@ -86,6 +87,7 @@ const SignIn: React.FC = () => {
           throw new Error("Failed to fetch blob URLs");
         }
         const data = await response.json();
+        handleConfetti();
         const combinedItems = combineItemsByCoreIdentifier(data);
         const localCombinedItems: LocalCombinedItem[] = combinedItems.map(
           (item) => ({
@@ -96,7 +98,6 @@ const SignIn: React.FC = () => {
 
         setImagesData(localCombinedItems);
         setIsSignatureReady(true);
-        handleConfetti();
         setLoading(false);
       } catch (err) {
         setLoading(false);
@@ -104,7 +105,7 @@ const SignIn: React.FC = () => {
     };
 
     fetchImages();
-    const intervalId = setInterval(fetchImages, 10000);
+    const intervalId = setInterval(fetchImages, 15000);
 
     return () => clearInterval(intervalId);
   }, []);
@@ -130,6 +131,11 @@ const SignIn: React.FC = () => {
   const settingsHandler = () => {
     router.push("/settings");
   };
+  const imageHandeler = (capture: string, signature: string) => {
+    setImagesDataOnclick([{ capture, signature }]);
+    console.log(imagesDataOnclick);
+    setIsSignatureReady(true);
+  }
   return (
     <div className="rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card">
       <div className="flex  justify-center align-middle">
@@ -156,9 +162,15 @@ const SignIn: React.FC = () => {
         </div>
 
         <div className=" mt-5 w-full sm:block sm:w-1/2  xl:block xl:w-1/2">
-          <div className="flex h-3/4 flex-wrap justify-center overflow-y-auto pb-5  ">
+          <div className="flex h-[650px] flex-wrap justify-center overflow-y-auto ">
             {imagesData.map((item, i) => (
-              <div key={i} className="m-2 w-1/4 overflow-hidden rounded-[10px] bg-gray shadow-1 dark:bg-gray-dark dark:shadow-card">
+              <div
+                key={i}
+                onClick={() => {
+                  imageHandeler(item?.capture?.url, item?.signature?.url);
+                }}
+                className="m-2 w-1/4 cursor-pointer overflow-hidden rounded-[10px] bg-gray shadow-1 dark:bg-gray-dark dark:shadow-card"
+              >
                 <div className="relative z-20 "></div>
                 <div className="">
                   <div className="relative z-30 mx-auto  w-full max-w-30 rounded-full bg-white/20 p-1 backdrop-blur sm:h-44 sm:max-w-[176px] sm:p-3">
@@ -191,7 +203,7 @@ const SignIn: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="-mt-25 flex justify-center pb-5">
+      <div className=" flex justify-end pb-5 mr-10 ">
         <button
           className="float-right rounded-2xl bg-myButton bg-cover bg-center bg-no-repeat font-bold text-white md:h-[40px] md:w-[100px] lg:h-[42px] lg:w-[135px]"
           onClick={() => {
@@ -203,41 +215,52 @@ const SignIn: React.FC = () => {
       </div>
 
       {isSignatureReady && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center align-center text-center bg-black bg-opacity-75">
-          <div className="rounded-lg bg-white p-5 shadow-lg flex flex-col justify-center align-center text-center align-middle">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
+          <div className="relative flex flex-col items-center rounded-lg bg-white p-5 text-center shadow-lg">
+            <div className="mb-6">
+              <button
+                className="color-black absolute right-2 top-2 rounded-full bg-gray px-1 py-1"
+                onClick={() => setIsSignatureReady(false)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="h-6 w-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
             <Image
               alt=""
               className="rounded-xl object-cover"
-              src={imagesData[0]?.capture?.url || ""}
+              src={
+                imagesDataOnclick[0]?.capture
+                  ? imagesDataOnclick[0]?.capture
+                  : imagesData[0]?.capture?.url
+              }
               width={500}
               height={100}
             />
             <Image
               alt=""
-              className="rounded-xl object-cover"
-              src={imagesData[0]?.signature?.url || ""}
+              className="mt-2 rounded-xl object-cover"
+              src={
+                imagesDataOnclick[0]?.signature
+                  ? imagesDataOnclick[0]?.signature
+                  : imagesData[0]?.signature?.url
+              }
               width={300}
               height={100}
-              style={{ marginTop: "10px", textAlign: "center" }}
             />
-
-            {/* <div className="mt-4 flex justify-end">
-              <button
-                className="mr-2 rounded bg-gray-300 px-4 py-2"
-                onClick={() => setIsSignatureReady(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="rounded bg-blue-500 px-4 py-2 text-white"
-                onClick={() => {
-                  // Handle save signature logic here
-                  setIsSignatureReady(false);
-                }}
-              >
-                Save
-              </button>
-            </div> */}
           </div>
         </div>
       )}
