@@ -6,7 +6,12 @@ export async function GET(request) {
     try {
         const { blobs } = await list({ token: MY_BLOB_TOKEN });
         return new Response(JSON.stringify(blobs), {
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            },
         });
     } catch (error) {
         console.error("Error listing blobs:", error);
