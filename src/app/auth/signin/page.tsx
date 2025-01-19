@@ -13,7 +13,7 @@ import { Camera } from "react-camera-pro";
 import bandgPhoto from "../../../../public/images/CustImages/BandG.png";
 import { useRouter } from "next/navigation";
 import { combineItemsByCoreIdentifier, CombinedItem } from "@/utils/helper";
-import { noStore } from 'next/cache';
+import { unstable_noStore as  noStore } from 'next/cache';
 interface CameraRef {
   takePhoto: () => string;
   // Add any other necessary methods or properties
