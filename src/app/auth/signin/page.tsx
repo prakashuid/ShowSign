@@ -109,8 +109,10 @@ const SignIn: React.FC = () => {
 
   //   return () => clearInterval(intervalId);
   // }, []);
-  useEffect(() => {
-    let lastModified: string | null = null; //Store last modified timestamp
+
+  
+
+  let lastModified: string | null = null; //Store last modified timestamp
   
     const fetchImages = async () => {
       try {
@@ -149,11 +151,12 @@ const SignIn: React.FC = () => {
       }
     };
   
-    fetchImages();
-    const intervalId = setInterval(fetchImages, 15000);
-  
-    return () => clearInterval(intervalId);
-  }, []);
+    useEffect(() => {
+      fetchImages();
+      // const intervalId = setInterval(fetchImages, 15000);
+    
+      // return () => clearInterval(intervalId);
+    }, []);
   
   const handleConfetti = () => {
     confetti({
@@ -171,8 +174,11 @@ const SignIn: React.FC = () => {
     });
     setTimeout(() => {
       setIsSignatureReady(false);
+      apiCall();
     }, 6000);
   };
+
+
 
   const settingsHandler = () => {
     router.push("/settings");
@@ -181,6 +187,13 @@ const SignIn: React.FC = () => {
     setImagesDataOnclick([{ capture, signature }]);
     console.log(imagesDataOnclick);
     setIsSignatureReady(true);
+  }
+
+  const apiCall = () =>{
+    setTimeout(() => {
+      fetchImages();
+    }, 6000);
+
   }
   return (
     <div className="rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card">
