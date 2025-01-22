@@ -1,7 +1,9 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
+import Link from "next/link";
 import Image from "next/image";
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
+import { Metadata } from "next";
 import DefaultLayout from "@/components/Layouts/DefaultLaout";
 import ButtonDefault from "@/components/Buttons/ButtonDefault";
 import Buttons from "@/app/ui-elements/buttons/page";
@@ -11,10 +13,10 @@ import { Camera } from "react-camera-pro";
 import bandgPhoto from "../../../../public/images/CustImages/BandG.png";
 import { useRouter } from "next/navigation";
 import { combineItemsByCoreIdentifier, CombinedItem } from "@/utils/helper";
-import { unstable_noStore as noStore } from "next/cache";
-
+import { unstable_noStore as  noStore } from 'next/cache';
 interface CameraRef {
   takePhoto: () => string;
+  // Add any other necessary methods or properties
 }
 
 interface LocalCombinedItem {
@@ -22,62 +24,45 @@ interface LocalCombinedItem {
   capture: any;
 }
 
-export async function getStaticProps() {
-  try {
-    const timestamp = Date.now();
-    const response = await fetch(`/api/file?t=${timestamp}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch data");
-    }
-    const data = await response.json();
-
-    const combinedItems = combineItemsByCoreIdentifier(data);
-    const localCombinedItems: LocalCombinedItem[] = combinedItems.map((item) => ({
-      capture: item.captured,
-      signature: item.signature,
-    }));
-
-    return {
-      props: {
-        initialImagesData: localCombinedItems,
-      },
-      revalidate: 60, // Revalidate every 60 seconds (ISR)
-    };
-  } catch (error) {
-    console.error("Error fetching static data:", error);
-    return {
-      props: {
-        initialImagesData: [],
-      },
-      revalidate: 60, // Revalidate even if there is an error
-    };
-  }
-}
-
-const SignIn: React.FC<{ initialImagesData: LocalCombinedItem[] }> = ({ initialImagesData }) => {
+const SignIn: React.FC = () => {
   const canvasRef = useRef(null);
   const sigCanvas = useRef<SignatureCanvas | null>(null);
   const camera = useRef<CameraRef | null>(null);
   const router = useRouter();
 
-  const [imagesData, setImagesData] = useState<LocalCombinedItem[]>(initialImagesData);
-  const [imagesDataOnclick, setImagesDataOnclick] = useState<LocalCombinedItem[]>([]);
+  const [camCapture, setCamCapture] = useState(true);
+  const [isSelected, setIsSelected] = useState(true);
+  const [isSelectedSign, setIsSelectedSign] = useState(true);
   const [isSignatureReady, setIsSignatureReady] = useState(false);
-  const [brideAndGoomImage, setBrideAndGoomImage] = useState<string | null>(null);
+  const [capturedImage, setCapturedImage] = useState(null);
+
+  const [numberOfCameras, setNumberOfCameras] = useState(0);
+  const [image, setImage] = useState<string | null>(null);
+  const [ratio, setRatio] = useState(11 / 5);
+  const [brideAndGoomImage, setBrideAndGoomImage] = useState<string | null>(
+    null,
+  );
   const [brideName, setBrideName] = useState("");
   const [groomName, setGroomName] = useState("");
   const [marriageDate, setMarriageDate] = useState("");
+  const [imagesDataOnclick, setImagesDataOnclick] = useState<LocalCombinedItem[]>([]);
+  const [photo, setPhoto] = useState<File | null>(null);
 
   useEffect(() => {
+    fetchImages();
+    // const intervalId = setInterval(fetchImages, 15000);
+  
+    // return () => clearInterval(intervalId);
+  }, []);
+
+
+  React.useEffect(() => {
     const brideName = sessionStorage.getItem("brideName") || "";
     const groomName = sessionStorage.getItem("groomName") || "";
     const marriageDate = sessionStorage.getItem("marriageDate") || "";
     setBrideName(brideName);
     setGroomName(groomName);
     setMarriageDate(marriageDate);
-
-    const uploadedPhoto = sessionStorage.getItem("uploadedPhoto");
-    setBrideAndGoomImage(uploadedPhoto);
   }, []);
 
   const confettiDefaults = {
@@ -89,6 +74,65 @@ const SignIn: React.FC<{ initialImagesData: LocalCombinedItem[] }> = ({ initialI
     colors: ["FFE400", "FFBD00", "E89400", "FFCA6C", "FDFFB8"],
   };
 
+  useEffect(() => {
+    if (sigCanvas.current) {
+      setIsSignatureReady(true);
+    }
+  }, [sigCanvas]);
+
+  React.useEffect(() => {
+    const uploadedPhoto = sessionStorage.getItem("uploadedPhoto");
+    setBrideAndGoomImage(uploadedPhoto);
+  }, []);
+  const [imagesData, setImagesData] = useState<LocalCombinedItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  let lastModified: string | null = null; //Store last modified timestamp
+  
+    const fetchImages = async () => {
+
+      try {
+        const headers: Record<string, string> = {};
+        if (lastModified) {
+          headers['cache'] = 'no-store';
+          headers['If-Modified-Since'] = lastModified;
+        }
+        const timestamp = Date.now();
+        noStore();
+       
+        const response = await fetch(`/api/file?t=${timestamp}`, { headers: headers as HeadersInit, method: "GET",  next: {
+          revalidate: 6
+        },});
+        if (!response.ok) {
+          if (response.status === 304) {
+            //Not modified, do nothing
+            return;
+          } else {
+            throw new Error(`Failed to fetch blob URLs: ${response.status}`);
+          }
+        }
+        const data = await response.json();
+        console.log(data);
+        lastModified = response.headers.get('Last-Modified'); // Update lastModified
+        handleConfetti();
+        const combinedItems = combineItemsByCoreIdentifier(data);
+              const localCombinedItems: LocalCombinedItem[] = combinedItems.map(
+                (item) => ({
+                  capture: item.captured,
+                  signature: item.signature,
+                }),
+              );
+      
+              setImagesData(localCombinedItems);
+              setIsSignatureReady(true);
+              setLoading(false);      } catch (err) {
+        setLoading(false);
+        console.error("Error fetching images:", err);
+      }
+    };
+  
+  
   const handleConfetti = () => {
     confetti({
       ...confettiDefaults,
@@ -103,73 +147,101 @@ const SignIn: React.FC<{ initialImagesData: LocalCombinedItem[] }> = ({ initialI
       scalar: 0.75,
       shapes: ["circle"],
     });
+    setTimeout(() => {
+      setIsSignatureReady(false);
+      apiCall();
+    }, 6000);
   };
+
+
 
   const settingsHandler = () => {
     router.push("/settings");
   };
-
-  const imageHandler = (capture: string, signature: string) => {
+  const imageHandeler = (capture: string, signature: string) => {
     setImagesDataOnclick([{ capture, signature }]);
+    console.log(imagesDataOnclick);
     setIsSignatureReady(true);
-  };
+  }
 
+  const apiCall = () =>{
+    setTimeout(() => {
+      fetchImages();
+    }, 60000);
+  }
   return (
     <div className="rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card">
-      <div className="flex justify-center align-middle">
-        <div className="w-full p-5 sm:w-1/2 xl:w-1/2">
-          <div className="flex h-[652px] flex-col items-center justify-center overflow-hidden rounded-2xl bg-bandgBg bg-cover bg-center bg-no-repeat text-center align-middle">
+      <div className="flex  justify-center align-middle">
+        <div className="w-full  p-5 sm:w-1/2 xl:w-1/2">
+          <div className=" flex h-[652px] flex-col items-center justify-center overflow-hidden rounded-2xl bg-bandgBg bg-cover bg-center bg-no-repeat text-center  align-middle ">
             <Image
-              src={brideAndGoomImage || bandgPhoto}
+              src={brideAndGoomImage ? brideAndGoomImage : bandgPhoto}
               alt="Logo"
               width={300}
               height={400}
-              className="h-[400px] w-[300px]"
+              className=" h-[400px] w-[300px]"
             />
             <div className="-mt-5 flex w-full items-center justify-center">
-              <button className="text-md h-[180px] w-3/4 rounded-2xl bg-myButton bg-cover bg-center bg-no-repeat p-5 font-bold text-white">
+              <button className="text-md h-[180px] w-3/4  rounded-2xl bg-myButton bg-cover bg-center bg-no-repeat p-5 font-bold text-white">
                 <span className="text-4xl font-bold">
                   {brideName} {brideName ? "&" : ""} {groomName}
                 </span>
                 <br />
-                <span>{marriageDate}</span>
+
+                <span className=""> {marriageDate} </span>
               </button>
             </div>
           </div>
         </div>
 
-        <div className="mt-5 w-full h-[650px] sm:block sm:w-1/2 xl:block xl:w-1/2 overflow-y-auto">
-          <div className="flex w-full flex-wrap justify-start">
+        <div className=" mt-5 w-full h-[650px] sm:block sm:w-1/2  xl:block xl:w-1/2 overflow-y-auto">
+          <div className="flex w-full  flex-wrap justify-start  ">
             {imagesData.map((item, i) => (
               <div
                 key={i}
-                onClick={() => imageHandler(item.capture.url, item.signature.url)}
+                onClick={() => {
+                  imageHandeler(item?.capture?.url, item?.signature?.url);
+                }}
                 className="w-[120px] m-1 h-[160px] cursor-pointer overflow-hidden rounded-[10px] bg-gray shadow-1 dark:bg-gray-dark dark:shadow-card"
               >
-                <Image
-                  src={item.capture.url}
-                  width={100}
-                  height={100}
-                  alt="Capture"
-                  className="w-auto h-auto"
-                />
-                <Image
-                  src={item.signature.url}
-                  width={160}
-                  height={160}
-                  className="overflow-hidden rounded-full"
-                  alt="Signature"
-                />
+                <div className="relative z-20 "></div>
+                <div className="">
+                  <div className="relative z-30 mx-auto  w-full max-w-30 rounded-full bg-white/20 p-1 backdrop-blur sm:h-44 sm:max-w-[176px] sm:p-3">
+                    <div className="relative drop-shadow-2">
+                      <Image
+                        src={item?.capture?.url}
+                        width={100}
+                        height={100}
+                        style={{
+                          width: "auto",
+                          height: "auto",
+                        }}
+                        alt="profile"
+                      />
+                    </div>
+                    <div className="mt-4">
+                      <Image
+                        src={item?.signature?.url}
+                        width={160}
+                        height={160}
+                        className="overflow-hidden rounded-full"
+                        alt="profile"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4"></div>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </div>
-
-      <div className="flex justify-end pb-5 mr-10">
+      <div className=" flex justify-end pb-5 mr-10 ">
         <button
           className="float-right rounded-2xl bg-myButton bg-cover bg-center bg-no-repeat font-bold text-white md:h-[40px] md:w-[100px] lg:h-[42px] lg:w-[135px]"
-          onClick={settingsHandler}
+          onClick={() => {
+            settingsHandler();
+          }}
         >
           Settings
         </button>
@@ -178,32 +250,47 @@ const SignIn: React.FC<{ initialImagesData: LocalCombinedItem[] }> = ({ initialI
       {isSignatureReady && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
           <div className="relative flex flex-col items-center rounded-lg bg-white p-5 text-center shadow-lg">
-            <button
-              className="absolute right-2 top-2 rounded-full bg-gray px-1 py-1"
-              onClick={() => setIsSignatureReady(false)}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="h-6 w-6"
+            <div className="mb-6">
+              <button
+                className="color-black absolute right-2 top-2 rounded-full bg-gray px-1 py-1"
+                onClick={() => setIsSignatureReady(false)}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="h-6 w-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
             <Image
               alt=""
               className="rounded-xl object-cover"
-              src={imagesDataOnclick[0]?.capture || imagesData[0]?.capture?.url}
+              src={
+                imagesDataOnclick[0]?.capture
+                  ? imagesDataOnclick[0]?.capture
+                  : imagesData[0]?.capture?.url
+              }
               width={500}
               height={100}
             />
             <Image
               alt=""
               className="mt-2 rounded-xl object-cover"
-              src={imagesDataOnclick[0]?.signature || imagesData[0]?.signature?.url}
+              src={
+                imagesDataOnclick[0]?.signature
+                  ? imagesDataOnclick[0]?.signature
+                  : imagesData[0]?.signature?.url
+              }
               width={300}
               height={100}
             />
@@ -215,3 +302,4 @@ const SignIn: React.FC<{ initialImagesData: LocalCombinedItem[] }> = ({ initialI
 };
 
 export default SignIn;
+ 
