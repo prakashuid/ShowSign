@@ -120,6 +120,7 @@ const SignIn: React.FC = () => {
       try {
         const headers: Record<string, string> = {};
         if (lastModified) {
+          headers['cache'] = 'no-store';
           headers['If-Modified-Since'] = lastModified;
         }
         const timestamp = Date.now();
