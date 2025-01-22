@@ -9,7 +9,7 @@ export async function GET(req: Request) {
         const { blobs } = await list({ token: MY_BLOB_TOKEN });
 
         // Sort blobs by last modified date in descending order
-        const sortedBlobs = blobs.sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime());
+        const sortedBlobs = blobs.sort((a:any, b:any) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime());
         const latestBlobModified = sortedBlobs[0]?.lastModified;
 
         // Check if the client has a cached version
